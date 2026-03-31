@@ -75,7 +75,7 @@ export function Footer({ onNavigate }: FooterProps) {
           <p>© {year} GLAMWELLA. All rights reserved. 🎀</p>
           <button
             type="button"
-            onClick={() => onNavigate?.("/admin/login")}
+            onClick={() => onNavigate?.("/admin")}
             className="hover:text-primary transition-colors"
           >
             Admin Login 🔐
