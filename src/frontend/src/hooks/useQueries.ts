@@ -48,19 +48,20 @@ export function useMyProfile() {
       if (!actor) return null;
       return actor.getMyProfile();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!identity,
   });
 }
 
 export function useMyOrders() {
   const { actor, isFetching } = useActor();
+  const { identity } = useInternetIdentity();
   return useQuery({
     queryKey: ["myOrders"],
     queryFn: async () => {
       if (!actor) return [];
       return actor.getMyOrders();
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor && !isFetching && !!identity,
   });
 }
 
