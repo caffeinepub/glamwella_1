@@ -86,6 +86,7 @@ export function Cart({ onNavigate }: CartProps) {
                   ? item.discountPriceINR
                   : item.priceINR,
               );
+              const atMax = item.quantity >= item.stockQuantity;
               return (
                 <motion.div
                   key={item.productId.toString()}
@@ -142,14 +143,24 @@ export function Cart({ onNavigate }: CartProps) {
                       </span>
                       <button
                         type="button"
-                        onClick={() =>
-                          updateQuantity(item.productId, item.quantity + 1)
-                        }
-                        className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:border-primary hover:text-primary transition-colors"
+                        onClick={() => {
+                          if (atMax) {
+                            toast.error(`Only ${item.stockQuantity} in stock`);
+                            return;
+                          }
+                          updateQuantity(item.productId, item.quantity + 1);
+                        }}
+                        disabled={atMax}
+                        className="w-6 h-6 rounded-full border border-border flex items-center justify-center hover:border-primary hover:text-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Plus size={12} />
                       </button>
                     </div>
+                    {atMax && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Max stock reached
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex flex-col items-end gap-2">

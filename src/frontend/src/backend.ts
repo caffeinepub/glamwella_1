@@ -156,6 +156,11 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
+export interface DeliveryRule {
+    zoneOrPincode: string;
+    chargeINR: bigint;
+    isDefault: boolean;
+}
 export interface Coupon {
     code: string;
     discountAmountINR: bigint;
@@ -233,6 +238,11 @@ export interface backendInterface {
     updateOrderStatus(orderId: bigint, status: string): Promise<boolean>;
     updateProduct(id: bigint, product: Product): Promise<void>;
     validateAdminToken(token: string): Promise<boolean>;
+    addDeliveryRule(rule: DeliveryRule): Promise<bigint>;
+    updateDeliveryRule(id: bigint, rule: DeliveryRule): Promise<void>;
+    deleteDeliveryRule(id: bigint): Promise<void>;
+    getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>>;
+    getDeliveryChargeForPincode(pincode: string): Promise<bigint>;
     addCoupon(coupon: Coupon): Promise<bigint>;
     getCoupons(): Promise<Array<[bigint, Coupon]>>;
     updateCoupon(id: bigint, coupon: Coupon): Promise<void>;
@@ -837,6 +847,72 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.validateAdminToken(arg0);
+            return result;
+        }
+    }
+    async addDeliveryRule(arg0: DeliveryRule): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addDeliveryRule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addDeliveryRule(arg0);
+            return result;
+        }
+    }
+    async updateDeliveryRule(arg0: bigint, arg1: DeliveryRule): Promise<void> {
+        if (this.processError) {
+            try {
+                await this.actor.updateDeliveryRule(arg0, arg1);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            await this.actor.updateDeliveryRule(arg0, arg1);
+        }
+    }
+    async deleteDeliveryRule(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                await this.actor.deleteDeliveryRule(arg0);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            await this.actor.deleteDeliveryRule(arg0);
+        }
+    }
+    async getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeliveryRules();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeliveryRules();
+            return result;
+        }
+    }
+    async getDeliveryChargeForPincode(arg0: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeliveryChargeForPincode(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeliveryChargeForPincode(arg0);
             return result;
         }
     }

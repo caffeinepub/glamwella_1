@@ -14,6 +14,11 @@ export const Coupon = IDL.Record({
   'maxUsesPerUser' : IDL.Nat,
   'isActive' : IDL.Bool,
 });
+export const DeliveryRule = IDL.Record({
+  'zoneOrPincode' : IDL.Text,
+  'chargeINR' : IDL.Nat,
+  'isDefault' : IDL.Bool,
+});
 export const Product = IDL.Record({
   'stockQuantity' : IDL.Nat,
   'name' : IDL.Text,
@@ -84,6 +89,11 @@ export const TransformationOutput = IDL.Record({
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
+  'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
+  'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
+  'getDeliveryRules' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))], ['query']),
+  'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
   'addCoupon' : IDL.Func([Coupon], [IDL.Nat], []),
   'addProduct' : IDL.Func([Product], [IDL.Nat], []),
   'adminLogin' : IDL.Func(
@@ -242,6 +252,11 @@ export const idlFactory = ({ IDL }) => {
     'maxUsesPerUser' : IDL.Nat,
     'isActive' : IDL.Bool,
   });
+  const DeliveryRule = IDL.Record({
+    'zoneOrPincode' : IDL.Text,
+    'chargeINR' : IDL.Nat,
+    'isDefault' : IDL.Bool,
+  });
   const Product = IDL.Record({
     'stockQuantity' : IDL.Nat,
     'name' : IDL.Text,
@@ -309,6 +324,11 @@ export const idlFactory = ({ IDL }) => {
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
+    'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
+    'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
+    'getDeliveryRules' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))], ['query']),
+    'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     'addCoupon' : IDL.Func([Coupon], [IDL.Nat], []),
     'addProduct' : IDL.Func([Product], [IDL.Nat], []),
     'adminLogin' : IDL.Func(

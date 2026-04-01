@@ -67,11 +67,12 @@ export function ProductDetail({ onNavigate, productId }: ProductDetailProps) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
-  const entry = products?.find(([id]) => id.toString() === productId);
+  const entry = products?.find(([pid]) => pid.toString() === productId);
   const product = entry?.[1];
   const id = entry?.[0];
 
   const inStock = product ? Number(product.stockQuantity) > 0 : false;
+  const stockQty = product ? Number(product.stockQuantity) : 0;
 
   const hasDiscount =
     product &&
@@ -107,6 +108,7 @@ export function ProductDetail({ onNavigate, productId }: ProductDetailProps) {
       priceINR: product.priceINR,
       discountPriceINR: product.discountPriceINR,
       imageUrl: product.imageUrl,
+      stockQuantity: stockQty,
     });
     setAdded(true);
     setShowViewCart(true);
@@ -295,11 +297,7 @@ export function ProductDetail({ onNavigate, productId }: ProductDetailProps) {
                 </span>
                 <button
                   type="button"
-                  onClick={() =>
-                    setQuantity((q) =>
-                      Math.min(Number(product.stockQuantity), q + 1),
-                    )
-                  }
+                  onClick={() => setQuantity((q) => Math.min(stockQty, q + 1))}
                   className="p-1.5 hover:text-primary transition-colors"
                 >
                   <Plus size={14} />

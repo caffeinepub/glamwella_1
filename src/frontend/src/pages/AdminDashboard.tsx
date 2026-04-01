@@ -33,6 +33,7 @@ import {
   Tag,
   ThumbsDown,
   Trash2,
+  Truck,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -468,6 +469,104 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     }
   };
 
+  // Delivery rules state
+  interface DeliveryRule {
+    zoneOrPincode: string;
+    chargeINR: bigint;
+    isDefault: boolean;
+  }
+  const [deliveryRules, setDeliveryRules] = useState<[bigint, DeliveryRule][]>(
+    [],
+  );
+  const [deliveryLoading, setDeliveryLoading] = useState(false);
+  const [showAddDeliveryForm, setShowAddDeliveryForm] = useState(false);
+  const [newDeliveryRule, setNewDeliveryRule] = useState<DeliveryRule>({
+    zoneOrPincode: "",
+    chargeINR: 60n,
+    isDefault: false,
+  });
+  const [editingDeliveryId, setEditingDeliveryId] = useState<bigint | null>(
+    null,
+  );
+  const [editDeliveryForm, setEditDeliveryForm] = useState<DeliveryRule>({
+    zoneOrPincode: "",
+    chargeINR: 60n,
+    isDefault: false,
+  });
+  const [savingDelivery, setSavingDelivery] = useState(false);
+
+  const fetchDeliveryRules = useCallback(async () => {
+    if (!actor) return;
+    setDeliveryLoading(true);
+    try {
+      const result = await (actor as any).getDeliveryRules();
+      setDeliveryRules(result);
+    } catch {
+      // ignore
+    } finally {
+      setDeliveryLoading(false);
+    }
+  }, [actor]);
+
+  const handleAddDeliveryRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor) return;
+    setSavingDelivery(true);
+    try {
+      await (actor as any).addDeliveryRule({
+        ...newDeliveryRule,
+        chargeINR: BigInt(newDeliveryRule.chargeINR),
+      });
+      setNewDeliveryRule({
+        zoneOrPincode: "",
+        chargeINR: 60n,
+        isDefault: false,
+      });
+      setShowAddDeliveryForm(false);
+      toast.success("Delivery rule added! 🚚");
+      fetchDeliveryRules();
+    } catch {
+      toast.error("Failed to add delivery rule");
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
+
+  const handleUpdateDeliveryRule = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor || editingDeliveryId === null) return;
+    setSavingDelivery(true);
+    try {
+      await (actor as any).updateDeliveryRule(editingDeliveryId, {
+        ...editDeliveryForm,
+        chargeINR: BigInt(editDeliveryForm.chargeINR),
+      });
+      setEditingDeliveryId(null);
+      toast.success("Delivery rule updated! ♥");
+      fetchDeliveryRules();
+    } catch {
+      toast.error("Failed to update delivery rule");
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
+
+  const handleDeleteDeliveryRule = async (id: bigint, isDefault: boolean) => {
+    if (!actor) return;
+    if (isDefault && deliveryRules.length === 1) {
+      toast.error("Cannot delete the only default rule");
+      return;
+    }
+    if (!confirm("Delete this delivery rule?")) return;
+    try {
+      await (actor as any).deleteDeliveryRule(id);
+      toast.success("Delivery rule deleted");
+      fetchDeliveryRules();
+    } catch {
+      toast.error("Failed to delete delivery rule");
+    }
+  };
+
   // Validate admin token
   useEffect(() => {
     const token = localStorage.getItem("glamwella_admin_token");
@@ -512,6 +611,11 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   useEffect(() => {
     fetchCoupons();
   }, [fetchCoupons]);
+
+  // Load delivery rules
+  useEffect(() => {
+    fetchDeliveryRules();
+  }, [fetchDeliveryRules]);
 
   const handleSeedDemo = async () => {
     if (!actor) return;
@@ -645,6 +749,9 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           </TabsTrigger>
           <TabsTrigger value="coupons" data-ocid="admin.tab">
             <Tag size={14} className="mr-1" /> Coupons 🎟️
+          </TabsTrigger>
+          <TabsTrigger value="delivery" data-ocid="admin.tab">
+            <Truck size={14} className="mr-1" /> Delivery
           </TabsTrigger>
           <TabsTrigger value="settings" data-ocid="admin.tab">
             <Settings size={14} className="mr-1" /> Settings
@@ -1223,6 +1330,288 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         data-ocid="coupons.empty_state"
                       >
                         No coupons yet. Add one to get started!
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Delivery Tab */}
+        <TabsContent value="delivery">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="font-display font-semibold text-lg">
+                Delivery Charges 🚚
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Orders above ₹999 always get free delivery
+              </p>
+            </div>
+            <Button
+              data-ocid="admin.primary_button"
+              onClick={() => setShowAddDeliveryForm(!showAddDeliveryForm)}
+              size="sm"
+              className="btn-primary rounded-full"
+            >
+              <Plus size={14} className="mr-1" /> Add Rule
+            </Button>
+          </div>
+
+          {showAddDeliveryForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="card-pink p-6 mb-4"
+            >
+              <h3 className="font-display font-semibold mb-4">
+                New Delivery Rule
+              </h3>
+              <form onSubmit={handleAddDeliveryRule} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Zone / Pincode *</Label>
+                    <Input
+                      data-ocid="admin.input"
+                      value={newDeliveryRule.zoneOrPincode}
+                      onChange={(e) =>
+                        setNewDeliveryRule({
+                          ...newDeliveryRule,
+                          zoneOrPincode: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. 600001 or South Zone"
+                      className="rounded-xl text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Charge (₹) *</Label>
+                    <Input
+                      data-ocid="admin.input"
+                      type="number"
+                      min={0}
+                      value={Number(newDeliveryRule.chargeINR)}
+                      onChange={(e) =>
+                        setNewDeliveryRule({
+                          ...newDeliveryRule,
+                          chargeINR: BigInt(e.target.value || 0),
+                        })
+                      }
+                      className="rounded-xl text-sm"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1 flex items-end pb-1">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        data-ocid="admin.switch"
+                        checked={newDeliveryRule.isDefault}
+                        onCheckedChange={(v) =>
+                          setNewDeliveryRule({
+                            ...newDeliveryRule,
+                            isDefault: v,
+                          })
+                        }
+                        id="new-default"
+                      />
+                      <Label
+                        htmlFor="new-default"
+                        className="text-xs cursor-pointer"
+                      >
+                        Set as Default
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    data-ocid="admin.submit_button"
+                    disabled={savingDelivery}
+                    className="btn-primary"
+                  >
+                    {savingDelivery ? (
+                      <Loader2 size={14} className="mr-1 animate-spin" />
+                    ) : (
+                      <Plus size={14} className="mr-1" />
+                    )}
+                    Add Rule
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddDeliveryForm(false)}
+                    className="rounded-full"
+                  >
+                    <X size={14} className="mr-1" /> Cancel
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {deliveryLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 size={32} className="animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="card-pink overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Zone / Pincode</TableHead>
+                    <TableHead>Charge (₹)</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deliveryRules.map(([id, rule], _i) =>
+                    editingDeliveryId === id ? (
+                      <TableRow key={id.toString()}>
+                        <TableCell colSpan={4}>
+                          <form
+                            onSubmit={handleUpdateDeliveryRule}
+                            className="space-y-3 py-2"
+                          >
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-1">
+                                <Label className="text-xs">
+                                  Zone / Pincode
+                                </Label>
+                                <Input
+                                  data-ocid="admin.input"
+                                  value={editDeliveryForm.zoneOrPincode}
+                                  onChange={(e) =>
+                                    setEditDeliveryForm({
+                                      ...editDeliveryForm,
+                                      zoneOrPincode: e.target.value,
+                                    })
+                                  }
+                                  className="rounded-xl text-sm"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <Label className="text-xs">Charge (₹)</Label>
+                                <Input
+                                  data-ocid="admin.input"
+                                  type="number"
+                                  min={0}
+                                  value={Number(editDeliveryForm.chargeINR)}
+                                  onChange={(e) =>
+                                    setEditDeliveryForm({
+                                      ...editDeliveryForm,
+                                      chargeINR: BigInt(e.target.value || 0),
+                                    })
+                                  }
+                                  className="rounded-xl text-sm"
+                                  required
+                                />
+                              </div>
+                              <div className="space-y-1 flex items-end pb-1">
+                                <div className="flex items-center gap-2">
+                                  <Switch
+                                    data-ocid="admin.switch"
+                                    checked={editDeliveryForm.isDefault}
+                                    onCheckedChange={(v) =>
+                                      setEditDeliveryForm({
+                                        ...editDeliveryForm,
+                                        isDefault: v,
+                                      })
+                                    }
+                                    id="edit-default"
+                                  />
+                                  <Label
+                                    htmlFor="edit-default"
+                                    className="text-xs cursor-pointer"
+                                  >
+                                    Default
+                                  </Label>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                data-ocid="admin.save_button"
+                                disabled={savingDelivery}
+                                size="sm"
+                                className="btn-primary"
+                              >
+                                <Save size={14} className="mr-1" /> Save
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setEditingDeliveryId(null)}
+                                className="rounded-full"
+                              >
+                                <X size={14} className="mr-1" /> Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      <TableRow key={id.toString()} data-ocid="delivery.row">
+                        <TableCell className="font-medium text-sm">
+                          {rule.zoneOrPincode}
+                        </TableCell>
+                        <TableCell className="font-semibold text-sm">
+                          ₹{Number(rule.chargeINR)}
+                        </TableCell>
+                        <TableCell>
+                          {rule.isDefault ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-pink-100 text-primary">
+                              Default
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                              Custom
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              data-ocid="delivery.edit_button"
+                              onClick={() => {
+                                setEditingDeliveryId(id);
+                                setEditDeliveryForm(rule);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-primary transition-colors"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              data-ocid="delivery.delete_button"
+                              onClick={() =>
+                                handleDeleteDeliveryRule(id, rule.isDefault)
+                              }
+                              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-destructive transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ),
+                  )}
+                  {deliveryRules.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center py-8 text-muted-foreground"
+                        data-ocid="delivery.empty_state"
+                      >
+                        No delivery rules yet. Add one to get started!
                       </TableCell>
                     </TableRow>
                   )}

@@ -24,11 +24,15 @@ export function ProductCard({
   onNavigate,
   index = 0,
 }: ProductCardProps) {
-  const { addItem } = useCart();
+  const { addItem, items } = useCart();
   const [added, setAdded] = useState(false);
   const [showViewCart, setShowViewCart] = useState(false);
 
-  const inStock = Number(product.stockQuantity) > 0;
+  const stockQty = Number(product.stockQuantity);
+  const inStock = stockQty > 0;
+  const cartItem = items.find((i) => i.productId === id);
+  const cartQty = cartItem?.quantity ?? 0;
+  const canAdd = cartQty < stockQty;
 
   const hasDiscount =
     product.discountPriceINR > 0n &&
@@ -48,6 +52,7 @@ export function ProductCard({
       priceINR: product.priceINR,
       discountPriceINR: product.discountPriceINR,
       imageUrl: product.imageUrl,
+      stockQuantity: stockQty,
     });
     setAdded(true);
     setShowViewCart(true);
@@ -118,7 +123,7 @@ export function ProductCard({
               </span>
             )}
           </div>
-          {inStock && (
+          {inStock && canAdd && (
             <motion.button
               type="button"
               onClick={handleAddToCart}

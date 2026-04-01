@@ -609,4 +609,74 @@ actor {
       case (?n) { n > 0 };
     };
   };
+
+  // Delivery Rules
+  type DeliveryRule = {
+    zoneOrPincode : Text;
+    chargeINR : Nat;
+    isDefault : Bool;
+  };
+
+  let deliveryRules = Map.empty<Nat, DeliveryRule>();
+  var nextDeliveryRuleId = 1;
+
+  // Seed default delivery rule
+  do {
+    deliveryRules.add(1, {
+      zoneOrPincode = "Default";
+      chargeINR = 60;
+      isDefault = true;
+    });
+    nextDeliveryRuleId := 2;
+  };
+
+  // Admin: add delivery rule
+  public shared func addDeliveryRule(rule : DeliveryRule) : async Nat {
+    let id = nextDeliveryRuleId;
+    deliveryRules.add(id, rule);
+    nextDeliveryRuleId += 1;
+    id;
+  };
+
+  // Admin: update delivery rule
+  public shared func updateDeliveryRule(id : Nat, rule : DeliveryRule) : async () {
+    if (not deliveryRules.containsKey(id)) { Runtime.trap("Delivery rule not found") };
+    deliveryRules.add(id, rule);
+  };
+
+  // Admin: delete delivery rule
+  public shared func deleteDeliveryRule(id : Nat) : async () {
+    if (not deliveryRules.containsKey(id)) { Runtime.trap("Delivery rule not found") };
+    deliveryRules.remove(id);
+  };
+
+  // Admin/Public: get all delivery rules
+  public query func getDeliveryRules() : async [(Nat, DeliveryRule)] {
+    let results = List.empty<(Nat, DeliveryRule)>();
+    for ((id, rule) in deliveryRules.entries()) {
+      results.add((id, rule));
+    };
+    results.values().toArray();
+  };
+
+  // Public: get delivery charge for a specific pincode
+  // Returns 0 if subtotal > 999 (free delivery threshold handled on frontend)
+  public query func getDeliveryChargeForPincode(pincode : Text) : async Nat {
+    var charge : Nat = 0;
+    var foundExact = false;
+    var defaultCharge : Nat = 60;
+    
+    for ((id, rule) in deliveryRules.entries()) {
+      if (rule.isDefault) {
+        defaultCharge := rule.chargeINR;
+      };
+      if (rule.zoneOrPincode == pincode and not rule.isDefault) {
+        charge := rule.chargeINR;
+        foundExact := true;
+      };
+    };
+    
+    if (foundExact) { charge } else { defaultCharge };
+  };
+
 };

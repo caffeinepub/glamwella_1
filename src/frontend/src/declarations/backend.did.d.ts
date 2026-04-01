@@ -16,6 +16,11 @@ export interface Coupon {
   'maxUsesPerUser' : bigint,
   'isActive' : boolean,
 }
+export interface DeliveryRule {
+  'zoneOrPincode' : string,
+  'chargeINR' : bigint,
+  'isDefault' : boolean,
+}
 export interface CustomerProfile {
   'city' : string,
   'name' : string,
@@ -80,6 +85,11 @@ export interface http_request_result {
 }
 export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'addDeliveryRule' : ActorMethod<[DeliveryRule], bigint>,
+  'updateDeliveryRule' : ActorMethod<[bigint, DeliveryRule], undefined>,
+  'deleteDeliveryRule' : ActorMethod<[bigint], undefined>,
+  'getDeliveryRules' : ActorMethod<[], Array<[bigint, DeliveryRule]>>,
+  'getDeliveryChargeForPincode' : ActorMethod<[string], bigint>,
   'addCoupon' : ActorMethod<[Coupon], bigint>,
   'addProduct' : ActorMethod<[Product], bigint>,
   'adminLogin' : ActorMethod<

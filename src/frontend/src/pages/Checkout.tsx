@@ -7,6 +7,7 @@ import {
   CreditCard,
   Loader2,
   Tag,
+  Truck,
   X,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -74,6 +75,9 @@ export function Checkout({ onNavigate }: CheckoutProps) {
   const [couponError, setCouponError] = useState("");
   const [validatingCoupon, setValidatingCoupon] = useState(false);
 
+  // Delivery charge state
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -85,21 +89,46 @@ export function Checkout({ onNavigate }: CheckoutProps) {
 
   useEffect(() => {
     if (profile) {
+      const p = profile.pincode;
       setForm({
         name: profile.name,
         phone: profile.phone,
         address: profile.address,
         city: profile.city,
-        pincode: profile.pincode,
+        pincode: p,
         gmail: profile.gmail,
       });
+      if (p && p.length === 6 && actor) {
+        if (totalINR > 999) {
+          setDeliveryCharge(0);
+        } else {
+          (actor as any)
+            .getDeliveryChargeForPincode(p)
+            .then((c: bigint) => setDeliveryCharge(Number(c)))
+            .catch(() => {});
+        }
+      }
     }
-  }, [profile]);
+  }, [profile, actor, totalINR]);
 
-  const discountedTotal = Math.max(
-    0,
-    totalINR - (appliedCoupon?.discount ?? 0),
-  );
+  // Re-fetch when pincode field changes
+  useEffect(() => {
+    if (form.pincode.length === 6 && actor) {
+      if (totalINR > 999) {
+        setDeliveryCharge(0);
+      } else {
+        (actor as any)
+          .getDeliveryChargeForPincode(form.pincode)
+          .then((c: bigint) => setDeliveryCharge(Number(c)))
+          .catch(() => {});
+      }
+    }
+  }, [form.pincode, actor, totalINR]);
+
+  const isFreeDelivery = totalINR > 999;
+  const finalTotal =
+    Math.max(0, totalINR - (appliedCoupon?.discount ?? 0)) +
+    (isFreeDelivery ? 0 : deliveryCharge);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -216,7 +245,7 @@ export function Checkout({ onNavigate }: CheckoutProps) {
       // Open Razorpay checkout directly (no server-side order required)
       const options: RazorpayOptions = {
         key: keyId,
-        amount: discountedTotal * 100, // amount in paise
+        amount: finalTotal * 100, // amount in paise
         currency: "INR",
         name: "GLAMWELLA",
         description: "Beauty Products Order",
@@ -233,7 +262,7 @@ export function Checkout({ onNavigate }: CheckoutProps) {
             }));
             await createOrder.mutateAsync({
               items: orderItems,
-              totalINR: BigInt(discountedTotal),
+              totalINR: BigInt(finalTotal),
               razorpayOrderId: response.razorpay_payment_id,
               customerName: form.name,
               phone: form.phone,
@@ -461,9 +490,23 @@ export function Checkout({ onNavigate }: CheckoutProps) {
                   <span>−₹{appliedCoupon.discount}</span>
                 </div>
               )}
+              <div className="flex justify-between text-sm items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Truck size={12} /> Delivery
+                </span>
+                {isFreeDelivery ? (
+                  <span className="text-green-600 font-semibold text-xs">
+                    FREE 🎉
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">
+                    ₹{deliveryCharge}
+                  </span>
+                )}
+              </div>
               <div className="flex justify-between font-bold text-base border-t border-border pt-2">
                 <span>Total</span>
-                <span className="text-primary">₹{discountedTotal}</span>
+                <span className="text-primary">₹{finalTotal}</span>
               </div>
             </div>
 
@@ -480,8 +523,8 @@ export function Checkout({ onNavigate }: CheckoutProps) {
                 </>
               ) : (
                 <>
-                  <CreditCard size={16} className="mr-2" /> Pay ₹
-                  {discountedTotal} with Razorpay
+                  <CreditCard size={16} className="mr-2" /> Pay ₹{finalTotal}{" "}
+                  with Razorpay
                 </>
               )}
             </Button>

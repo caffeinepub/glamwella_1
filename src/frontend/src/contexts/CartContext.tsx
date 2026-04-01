@@ -13,6 +13,7 @@ export interface CartItem {
   priceINR: bigint;
   discountPriceINR: bigint;
   imageUrl: string;
+  stockQuantity: number;
 }
 
 interface CartContextType {
@@ -49,11 +50,13 @@ function deserializeCart(raw: string): CartItem[] {
         name: string;
         quantity: number;
         imageUrl: string;
+        stockQuantity?: number;
       }) => ({
         ...i,
         productId: BigInt(i.productId),
         priceINR: BigInt(i.priceINR),
         discountPriceINR: BigInt(i.discountPriceINR),
+        stockQuantity: i.stockQuantity ?? 99,
       }),
     );
   } catch {
@@ -75,9 +78,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === item.productId);
       if (existing) {
+        const newQty = Math.min(
+          existing.quantity + item.quantity,
+          item.stockQuantity,
+        );
         return prev.map((i) =>
           i.productId === item.productId
-            ? { ...i, quantity: i.quantity + item.quantity }
+            ? { ...i, quantity: newQty, stockQuantity: item.stockQuantity }
             : i,
         );
       }
@@ -95,7 +102,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i)),
+      prev.map((i) =>
+        i.productId === productId
+          ? { ...i, quantity: Math.min(quantity, i.stockQuantity) }
+          : i,
+      ),
     );
   };
 

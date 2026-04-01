@@ -38,12 +38,7 @@ export function WelcomeBanner() {
         >
           <div className="container mx-auto px-4 py-2 flex items-center justify-between gap-3">
             <p className="text-sm text-rose-700 font-medium text-center flex-1">
-              🎉 Use code{" "}
-              <span className="font-mono font-bold bg-rose-100 px-1.5 py-0.5 rounded text-rose-800">
-                WELCOME
-              </span>{" "}
-              at checkout for <span className="font-bold">₹50 off</span> your
-              first order!
+              🎉 Get 5% off on every products !
             </p>
             <button
               type="button"

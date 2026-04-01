@@ -69,6 +69,11 @@ export interface Product {
     category: string;
     priceINR: bigint;
 }
+export interface DeliveryRule {
+  zoneOrPincode: string;
+  chargeINR: bigint;
+  isDefault: boolean;
+}
 export interface Coupon {
     code: string;
     discountAmountINR: bigint;
@@ -150,6 +155,12 @@ export interface backendInterface {
     updateOrderStatus(orderId: bigint, status: string): Promise<boolean>;
     updateProduct(id: bigint, product: Product): Promise<void>;
     validateAdminToken(token: string): Promise<boolean>;
+    // Delivery Rule functions
+    addDeliveryRule(rule: DeliveryRule): Promise<bigint>;
+    updateDeliveryRule(id: bigint, rule: DeliveryRule): Promise<void>;
+    deleteDeliveryRule(id: bigint): Promise<void>;
+    getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>>;
+    getDeliveryChargeForPincode(pincode: string): Promise<bigint>;
     // Coupon functions
     addCoupon(coupon: Coupon): Promise<bigint>;
     updateCoupon(id: bigint, coupon: Coupon): Promise<void>;
