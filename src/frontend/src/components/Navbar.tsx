@@ -50,7 +50,7 @@ export function Navbar({ onNavigate, currentPath }: NavbarProps) {
             <img
               src={glamwellaLogo}
               alt="GLAMWELLA"
-              className="h-10 w-auto object-contain"
+              className="h-16 w-auto object-contain"
             />
           </button>
 

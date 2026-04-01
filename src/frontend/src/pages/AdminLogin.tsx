@@ -21,13 +21,15 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actor) {
-      toast.error("Still connecting, please try again in a moment");
-      return;
-    }
     setLoading(true);
     setError("");
     try {
+      if (!actor) {
+        const msg = "Not connected. Please wait and try again.";
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
       const result = await actor.adminLogin(username, password);
       if (result.__kind__ === "ok") {
         localStorage.setItem("glamwella_admin_token", result.ok);
@@ -46,8 +48,6 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
       setLoading(false);
     }
   };
-
-  const isConnecting = isFetching || !actor;
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
@@ -83,13 +83,6 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
           <p className="text-sm text-muted-foreground">Admin Portal 🎀</p>
         </div>
 
-        {isConnecting && (
-          <div className="flex items-center justify-center gap-2 mb-4 text-sm text-muted-foreground">
-            <Loader2 size={14} className="animate-spin" />
-            Connecting...
-          </div>
-        )}
-
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="username">Username</Label>
@@ -100,7 +93,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               onChange={(e) => setUsername(e.target.value)}
               className="rounded-xl"
               autoComplete="username"
-              disabled={loading}
+              disabled={loading || isFetching}
             />
           </div>
           <div className="space-y-1">
@@ -113,7 +106,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               onChange={(e) => setPassword(e.target.value)}
               className="rounded-xl"
               autoComplete="current-password"
-              disabled={loading}
+              disabled={loading || isFetching}
             />
           </div>
           {error && (
@@ -127,7 +120,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
           <Button
             type="submit"
             data-ocid="admin.submit_button"
-            disabled={loading || isConnecting}
+            disabled={loading || isFetching}
             className="btn-primary w-full py-3"
           >
             {loading ? (
@@ -135,15 +128,15 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
                 <Loader2 size={16} className="mr-2 animate-spin" /> Logging
                 in...
               </>
-            ) : isConnecting ? (
-              <>
-                <Loader2 size={16} className="mr-2 animate-spin" />{" "}
-                Connecting...
-              </>
             ) : (
               "Login to Admin 🔐"
             )}
           </Button>
+          {isFetching && (
+            <p className="text-xs text-muted-foreground text-center">
+              Connecting to server...
+            </p>
+          )}
         </form>
       </motion.div>
     </main>
