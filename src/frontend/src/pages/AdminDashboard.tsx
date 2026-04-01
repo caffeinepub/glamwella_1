@@ -759,7 +759,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
               if (!actor) return;
               setDeletedOrdersLoading(true);
               try {
-                const r = await (actor as any).getDeletedOrders();
+                const r = await actor.getDeletedOrders();
                 setDeletedOrders(r);
               } catch {
               } finally {
@@ -1039,7 +1039,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       if (!actor) return;
                       setDeletingOrders(true);
                       try {
-                        await (actor as any).softDeleteOrders(
+                        await actor.softDeleteOrders(
                           Array.from(selectedOrderIds).map(BigInt),
                         );
                         setSelectedOrderIds(new Set());

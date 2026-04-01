@@ -252,6 +252,8 @@ export interface backendInterface {
     validateCoupon(code: string): Promise<{ __kind__: "ok"; ok: bigint } | { __kind__: "err"; err: string }>;
     redeemCoupon(code: string): Promise<{ __kind__: "ok"; ok: null } | { __kind__: "err"; err: string }>;
     hasCouponBeenUsed(code: string): Promise<boolean>;
+    softDeleteOrders(orderIds: Array<bigint>): Promise<boolean>;
+    getDeletedOrders(): Promise<Array<[bigint, Order]>>;
 }
 import type { CustomerProfile as _CustomerProfile, Order as _Order, Product as _Product, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -1013,6 +1015,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.hasCouponBeenUsed(arg0);
+            return result;
+        }
+    }
+    async softDeleteOrders(orderIds: Array<bigint>): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.softDeleteOrders(orderIds);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.softDeleteOrders(orderIds);
+            return result;
+        }
+    }
+    async getDeletedOrders(): Promise<Array<[bigint, Order]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeletedOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeletedOrders();
             return result;
         }
     }
