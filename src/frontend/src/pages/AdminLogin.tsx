@@ -1,3 +1,4 @@
+import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,7 +76,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
             <Lock size={28} className="text-white" />
           </div>
           <img
-            src="/assets/generated/glamwella-logo-transparent.dim_600x200.png"
+            src={glamwellaLogo}
             alt="GLAMWELLA"
             className="h-10 w-auto object-contain mx-auto mb-2"
           />

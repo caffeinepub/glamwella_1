@@ -47,7 +47,8 @@ actor {
     price : Nat;
   };
 
-  type Order = {
+  // V1 type for migration compatibility with existing stable data
+  type OrderV1 = {
     customerId : Principal;
     items : [OrderItem];
     totalINR : Nat;
@@ -61,6 +62,22 @@ actor {
     createdAt : Int;
   };
 
+  // Current type with landmark
+  type Order = {
+    customerId : Principal;
+    items : [OrderItem];
+    totalINR : Nat;
+    razorpayOrderId : Text;
+    status : Text;
+    customerName : Text;
+    phone : Text;
+    address : Text;
+    city : Text;
+    pincode : Text;
+    landmark : Text;
+    createdAt : Int;
+  };
+
   module OrderSummary {
     public func compareByTotal(order1 : { id : Nat; totalINR : Nat }, order2 : { id : Nat; totalINR : Nat }) : Order.Order {
       Nat.compare(order1.totalINR, order2.totalINR);
@@ -71,6 +88,18 @@ actor {
     };
   };
 
+  // V1 type for migration compatibility with existing stable data
+  type CustomerProfileV1 = {
+    name : Text;
+    phone : Text;
+    gmail : Text;
+    address : Text;
+    city : Text;
+    pincode : Text;
+    profileComplete : Bool;
+  };
+
+  // Current type with landmark
   type CustomerProfile = {
     name : Text;
     phone : Text;
@@ -78,6 +107,7 @@ actor {
     address : Text;
     city : Text;
     pincode : Text;
+    landmark : Text;
     profileComplete : Bool;
   };
 
@@ -101,10 +131,52 @@ actor {
   let products = Map.empty<Nat, Product>();
   var nextProductId = 1;
 
-  let orders = Map.empty<Nat, Order>();
+  // V1 maps: keep same names as old stable vars so existing data is loaded here
+  let orders = Map.empty<Nat, OrderV1>();
   var nextOrderId = 1;
 
-  let customerProfiles = Map.empty<Principal, CustomerProfile>();
+  let customerProfiles = Map.empty<Principal, CustomerProfileV1>();
+
+  // V2 maps: new types with landmark field
+  let ordersV2 = Map.empty<Nat, Order>();
+  let customerProfilesV2 = Map.empty<Principal, CustomerProfile>();
+
+  // Migration flag
+  stable var _profilesMigrated = false;
+
+  system func postupgrade() {
+    if (not _profilesMigrated) {
+      for ((p, cp) in customerProfiles.entries()) {
+        customerProfilesV2.add(p, {
+          name = cp.name;
+          phone = cp.phone;
+          gmail = cp.gmail;
+          address = cp.address;
+          city = cp.city;
+          pincode = cp.pincode;
+          landmark = "";
+          profileComplete = cp.profileComplete;
+        });
+      };
+      for ((id, order) in orders.entries()) {
+        ordersV2.add(id, {
+          customerId = order.customerId;
+          items = order.items;
+          totalINR = order.totalINR;
+          razorpayOrderId = order.razorpayOrderId;
+          status = order.status;
+          customerName = order.customerName;
+          phone = order.phone;
+          address = order.address;
+          city = order.city;
+          pincode = order.pincode;
+          landmark = "";
+          createdAt = order.createdAt;
+        });
+      };
+      _profilesMigrated := true;
+    };
+  };
   let reviews = Map.empty<Nat, Review>();
   var nextReviewId = 1;
 
@@ -196,7 +268,7 @@ actor {
   };
 
   // Orders
-  public shared ({ caller }) func createOrder(items : [OrderItem], totalINR : Nat, razorpayOrderId : Text, customerName : Text, phone : Text, address : Text, city : Text, pincode : Text) : async ?Nat {
+  public shared ({ caller }) func createOrder(items : [OrderItem], totalINR : Nat, razorpayOrderId : Text, customerName : Text, phone : Text, address : Text, city : Text, pincode : Text, landmark : Text) : async ?Nat {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can create orders");
     };
@@ -229,22 +301,23 @@ actor {
       address;
       city;
       pincode;
+      landmark;
       createdAt = Time.now();
     };
 
-    orders.add(orderId, order);
+    ordersV2.add(orderId, order);
     nextOrderId += 1;
     ?orderId;
   };
 
   public shared ({ caller = _ }) func updateOrderStatus(orderId : Nat, status : Text) : async Bool {
-    switch (orders.get(orderId)) {
+    switch (ordersV2.get(orderId)) {
       case (null) { Runtime.trap("Order not found") };
       case (?order) {
         let updatedOrder : Order = {
           order with status;
         };
-        orders.add(orderId, updatedOrder);
+        ordersV2.add(orderId, updatedOrder);
         true;
       };
     };
@@ -255,7 +328,7 @@ actor {
       Runtime.trap("Unauthorized: Only users can view orders");
     };
     let results = List.empty<(Nat, Order)>();
-    for ((id, order) in orders.entries()) {
+    for ((id, order) in ordersV2.entries()) {
       if (order.customerId == caller) {
         results.add((id, order));
       };
@@ -267,13 +340,13 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view orders");
     };
-    orders.get(orderId);
+    ordersV2.get(orderId);
   };
 
   // Admin - no IC-level auth, protected by frontend token
   public query func getAllOrders() : async [(Nat, Order)] {
     let results = List.empty<(Nat, Order)>();
-    for ((id, order) in orders.entries()) {
+    for ((id, order) in ordersV2.entries()) {
       results.add((id, order));
     };
     results.values().toArray();
@@ -281,7 +354,7 @@ actor {
 
   public query func getPendingOrders() : async [(Nat, Order)] {
     let results = List.empty<(Nat, Order)>();
-    for ((id, order) in orders.entries()) {
+    for ((id, order) in ordersV2.entries()) {
       if (order.status == "Pending") {
         results.add((id, order));
       };
@@ -291,7 +364,7 @@ actor {
 
   public query func getCompletedOrders() : async [(Nat, Order)] {
     let results = List.empty<(Nat, Order)>();
-    for ((id, order) in orders.entries()) {
+    for ((id, order) in ordersV2.entries()) {
       if (order.status == "Completed") {
         results.add((id, order));
       };
@@ -304,42 +377,42 @@ actor {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-    customerProfiles.get(caller);
+    customerProfilesV2.get(caller);
   };
 
   public query ({ caller }) func getUserProfile(user : Principal) : async ?CustomerProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-    customerProfiles.get(user);
+    customerProfilesV2.get(user);
   };
 
   public shared ({ caller }) func saveCallerUserProfile(profile : CustomerProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can save profiles");
     };
-    customerProfiles.add(caller, profile);
+    customerProfilesV2.add(caller, profile);
   };
 
   public shared ({ caller }) func createOrUpdateProfile(profile : CustomerProfile) : async () {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can update profiles");
     };
-    customerProfiles.add(caller, profile);
+    customerProfilesV2.add(caller, profile);
   };
 
   public query ({ caller }) func getMyProfile() : async ?CustomerProfile {
     if (not (AccessControl.hasPermission(accessControlState, caller, #user))) {
       Runtime.trap("Unauthorized: Only users can view profiles");
     };
-    customerProfiles.get(caller);
+    customerProfilesV2.get(caller);
   };
 
   public query ({ caller }) func getProfile(user : Principal) : async ?CustomerProfile {
     if (caller != user) {
       Runtime.trap("Unauthorized: Can only view your own profile");
     };
-    customerProfiles.get(user);
+    customerProfilesV2.get(user);
   };
 
   // Razorpay Integration
@@ -403,7 +476,7 @@ actor {
 
   // Order Sorting Functions
   public query func getOrdersSortedByTotal() : async [(Nat, Order)] {
-    orders.toArray().sort(
+    ordersV2.toArray().sort(
       func((idA, orderA), (idB, orderB)) {
         OrderSummary.compareByTotal(
           { id = idA; totalINR = orderA.totalINR },
@@ -414,7 +487,7 @@ actor {
   };
 
   public query func getOrdersSortedById() : async [(Nat, Order)] {
-    orders.toArray().sort(
+    ordersV2.toArray().sort(
       func((idA, orderA), (idB, orderB)) {
         OrderSummary.compareById(
           { id = idA; totalINR = orderA.totalINR },

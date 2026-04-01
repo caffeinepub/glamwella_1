@@ -85,6 +85,7 @@ export function Checkout({ onNavigate }: CheckoutProps) {
     city: "",
     pincode: "",
     gmail: "",
+    landmark: "",
   });
 
   useEffect(() => {
@@ -97,6 +98,7 @@ export function Checkout({ onNavigate }: CheckoutProps) {
         city: profile.city,
         pincode: p,
         gmail: profile.gmail,
+        landmark: profile.landmark ?? "",
       });
       if (p && p.length === 6 && actor) {
         if (totalINR > 999) {
@@ -269,6 +271,7 @@ export function Checkout({ onNavigate }: CheckoutProps) {
               address: form.address,
               city: form.city,
               pincode: form.pincode,
+              landmark: form.landmark ?? "",
             });
             // Redeem coupon if applied
             if (appliedCoupon) {
@@ -362,6 +365,15 @@ export function Checkout({ onNavigate }: CheckoutProps) {
               {field("address", "Full Address", "address")}
               {field("city", "City", "city")}
               {field("pincode", "Pincode", "pincode")}
+            </div>
+            <div className="mt-3">
+              {field(
+                "landmark",
+                "Landmark (Near / Opposite)",
+                "landmark",
+                "text",
+                false,
+              )}
             </div>
           </div>
         </div>

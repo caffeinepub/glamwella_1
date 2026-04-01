@@ -37,6 +37,7 @@ export interface CustomerProfile {
     address: string;
     phone: string;
     pincode: string;
+    landmark: string;
     profileComplete: boolean;
 }
 export interface Order {
@@ -51,6 +52,7 @@ export interface Order {
     phone: string;
     items: Array<OrderItem>;
     pincode: string;
+    landmark: string;
 }
 export interface Review {
     status: string;
@@ -103,7 +105,7 @@ export interface backendInterface {
     }>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createOrUpdateProfile(profile: CustomerProfile): Promise<void>;
-    createOrder(items: Array<OrderItem>, totalINR: bigint, razorpayOrderId: string, customerName: string, phone: string, address: string, city: string, pincode: string): Promise<bigint | null>;
+    createOrder(items: Array<OrderItem>, totalINR: bigint, razorpayOrderId: string, customerName: string, phone: string, address: string, city: string, pincode: string, landmark: string): Promise<bigint | null>;
     createRazorpayOrder(amountPaise: bigint, receipt: string): Promise<{
         __kind__: "ok";
         ok: string;

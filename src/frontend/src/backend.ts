@@ -119,6 +119,7 @@ export interface CustomerProfile {
     address: string;
     phone: string;
     pincode: string;
+    landmark: string;
     profileComplete: boolean;
 }
 export interface Order {
@@ -133,6 +134,7 @@ export interface Order {
     phone: string;
     items: Array<OrderItem>;
     pincode: string;
+    landmark: string;
 }
 export interface Review {
     status: string;
@@ -186,7 +188,7 @@ export interface backendInterface {
     }>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     createOrUpdateProfile(profile: CustomerProfile): Promise<void>;
-    createOrder(items: Array<OrderItem>, totalINR: bigint, razorpayOrderId: string, customerName: string, phone: string, address: string, city: string, pincode: string): Promise<bigint | null>;
+    createOrder(items: Array<OrderItem>, totalINR: bigint, razorpayOrderId: string, customerName: string, phone: string, address: string, city: string, pincode: string, landmark: string): Promise<bigint | null>;
     createRazorpayOrder(amountPaise: bigint, receipt: string): Promise<{
         __kind__: "ok";
         ok: string;
@@ -350,17 +352,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createOrder(arg0: Array<OrderItem>, arg1: bigint, arg2: string, arg3: string, arg4: string, arg5: string, arg6: string, arg7: string): Promise<bigint | null> {
+    async createOrder(arg0: Array<OrderItem>, arg1: bigint, arg2: string, arg3: string, arg4: string, arg5: string, arg6: string, arg7: string, arg8: string): Promise<bigint | null> {
         if (this.processError) {
             try {
-                const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+                const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
                 return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7);
+            const result = await this.actor.createOrder(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8);
             return from_candid_opt_n5(this._uploadFile, this._downloadFile, result);
         }
     }

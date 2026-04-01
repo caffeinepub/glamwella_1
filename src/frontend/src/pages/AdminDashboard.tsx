@@ -1,3 +1,4 @@
+import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -683,11 +684,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
     <main className="container mx-auto px-4 py-8 pb-16">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <img
-            src="/assets/generated/glamwella-logo-transparent.dim_600x200.png"
-            alt="GLAMWELLA"
-            className="h-10 w-auto"
-          />
+          <img src={glamwellaLogo} alt="GLAMWELLA" className="h-10 w-auto" />
           <div>
             <h1 className="font-display text-xl font-bold text-foreground">
               Admin Dashboard
@@ -1047,6 +1044,7 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                       <p>
                         {order.city} - {order.pincode}
                       </p>
+                      {order.landmark && <p>🏠 {order.landmark}</p>}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-1.5 mb-3">

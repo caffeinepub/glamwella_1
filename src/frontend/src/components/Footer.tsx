@@ -1,3 +1,4 @@
+import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Instagram, Mail } from "lucide-react";
 
 interface FooterProps {
@@ -20,7 +21,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Brand */}
           <div className="flex flex-col items-start gap-3">
             <img
-              src="/assets/generated/glamwella-logo-transparent.dim_600x200.png"
+              src={glamwellaLogo}
               alt="GLAMWELLA"
               className="h-12 w-auto object-contain"
             />

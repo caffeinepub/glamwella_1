@@ -28,6 +28,7 @@ export interface CustomerProfile {
   'address' : string,
   'phone' : string,
   'pincode' : string,
+  'landmark' : string,
   'profileComplete' : boolean,
 }
 export interface Order {
@@ -42,6 +43,7 @@ export interface Order {
   'phone' : string,
   'items' : Array<OrderItem>,
   'pincode' : string,
+  'landmark' : string,
 }
 export interface OrderItem {
   'productId' : bigint,
@@ -101,7 +103,7 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createOrUpdateProfile' : ActorMethod<[CustomerProfile], undefined>,
   'createOrder' : ActorMethod<
-    [Array<OrderItem>, bigint, string, string, string, string, string, string],
+    [Array<OrderItem>, bigint, string, string, string, string, string, string, string],
     [] | [bigint]
   >,
   'createRazorpayOrder' : ActorMethod<

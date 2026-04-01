@@ -25,6 +25,7 @@ export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
     address: "",
     city: "",
     pincode: "",
+    landmark: "",
   });
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
         address: profile.address,
         city: profile.city,
         pincode: profile.pincode,
+        landmark: profile.landmark ?? "",
       });
     }
   }, [profile]);
@@ -77,6 +79,7 @@ export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
         address: form.address,
         city: form.city,
         pincode: form.pincode,
+        landmark: form.landmark,
         profileComplete: true,
       });
       toast.success("Profile saved! ♥");
@@ -151,6 +154,9 @@ export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
               {field("address", "Full Address", "address")}
               {field("city", "City", "city")}
               {field("pincode", "Pincode", "pincode")}
+            </div>
+            <div>
+              {field("landmark", "Landmark (Near / Opposite)", "landmark")}
             </div>
             <Button
               type="submit"

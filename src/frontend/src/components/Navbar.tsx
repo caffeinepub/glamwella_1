@@ -1,3 +1,4 @@
+import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LogOut, Menu, Search, ShoppingCart, User, X } from "lucide-react";
@@ -47,7 +48,7 @@ export function Navbar({ onNavigate, currentPath }: NavbarProps) {
             className="flex-shrink-0"
           >
             <img
-              src="/assets/generated/glamwella-logo-transparent.dim_600x200.png"
+              src={glamwellaLogo}
               alt="GLAMWELLA"
               className="h-10 w-auto object-contain"
             />

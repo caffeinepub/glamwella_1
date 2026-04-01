@@ -144,6 +144,7 @@ export function useCreateOrder() {
       address: string;
       city: string;
       pincode: string;
+      landmark: string;
     }) => {
       if (!actor) throw new Error("Not connected");
       return actor.createOrder(
@@ -155,6 +156,7 @@ export function useCreateOrder() {
         args.address,
         args.city,
         args.pincode,
+        args.landmark ?? "",
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["myOrders"] }),

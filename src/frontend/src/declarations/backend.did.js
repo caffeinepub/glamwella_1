@@ -40,6 +40,7 @@ export const CustomerProfile = IDL.Record({
   'address' : IDL.Text,
   'phone' : IDL.Text,
   'pincode' : IDL.Text,
+  'landmark' : IDL.Text,
   'profileComplete' : IDL.Bool,
 });
 export const OrderItem = IDL.Record({
@@ -59,6 +60,7 @@ export const Order = IDL.Record({
   'phone' : IDL.Text,
   'items' : IDL.Vec(OrderItem),
   'pincode' : IDL.Text,
+  'landmark' : IDL.Text,
 });
 export const Review = IDL.Record({
   'status' : IDL.Text,
@@ -112,6 +114,7 @@ export const idlService = IDL.Service({
       [
         IDL.Vec(OrderItem),
         IDL.Nat,
+        IDL.Text,
         IDL.Text,
         IDL.Text,
         IDL.Text,
@@ -278,6 +281,7 @@ export const idlFactory = ({ IDL }) => {
     'address' : IDL.Text,
     'phone' : IDL.Text,
     'pincode' : IDL.Text,
+    'landmark' : IDL.Text,
     'profileComplete' : IDL.Bool,
   });
   const OrderItem = IDL.Record({
@@ -297,6 +301,7 @@ export const idlFactory = ({ IDL }) => {
     'phone' : IDL.Text,
     'items' : IDL.Vec(OrderItem),
     'pincode' : IDL.Text,
+    'landmark' : IDL.Text,
   });
   const Review = IDL.Record({
     'status' : IDL.Text,
@@ -347,6 +352,7 @@ export const idlFactory = ({ IDL }) => {
         [
           IDL.Vec(OrderItem),
           IDL.Nat,
+          IDL.Text,
           IDL.Text,
           IDL.Text,
           IDL.Text,
