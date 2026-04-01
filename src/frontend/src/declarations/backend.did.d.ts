@@ -149,6 +149,8 @@ export interface _SERVICE {
   >,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateCoupon' : ActorMethod<[bigint, Coupon], undefined>,
+  'softDeleteOrders' : ActorMethod<[bigint[]], boolean>,
+  'getDeletedOrders' : ActorMethod<[], Array<[bigint, Order]>>,
   'updateOrderStatus' : ActorMethod<[bigint, string], boolean>,
   'updateProduct' : ActorMethod<[bigint, Product], undefined>,
   'validateAdminToken' : ActorMethod<[string], boolean>,

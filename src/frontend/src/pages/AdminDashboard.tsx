@@ -1,6 +1,7 @@
 import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BarChart3,
   Check,
@@ -40,7 +42,7 @@ import {
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import type { Product, Review } from "../backend";
+import type { Order, Product, Review } from "../backend";
 import { useActor } from "../hooks/useActor";
 import {
   useAddProduct,
@@ -355,6 +357,15 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
   const [rzKeyId, setRzKeyId] = useState("");
   const [rzKeySecret, setRzKeySecret] = useState("");
   const [savingKeys, setSavingKeys] = useState(false);
+
+  // Order selection & soft-delete state
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [deletingOrders, setDeletingOrders] = useState(false);
+  const [deletedOrders, setDeletedOrders] = useState<[bigint, Order][]>([]);
+  const [deletedOrdersLoading, setDeletedOrdersLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   // Reviews state
   const [pendingReviews, setPendingReviews] = useState<[bigint, Review][]>([]);
@@ -741,6 +752,23 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
           <TabsTrigger value="orders" data-ocid="admin.tab">
             <Package size={14} className="mr-1" /> Orders
           </TabsTrigger>
+          <TabsTrigger
+            value="deleted-orders"
+            data-ocid="admin.tab"
+            onClick={async () => {
+              if (!actor) return;
+              setDeletedOrdersLoading(true);
+              try {
+                const r = await (actor as any).getDeletedOrders();
+                setDeletedOrders(r);
+              } catch {
+              } finally {
+                setDeletedOrdersLoading(false);
+              }
+            }}
+          >
+            <Trash2 size={14} className="mr-1" /> Deleted Orders 🗑️
+          </TabsTrigger>
           <TabsTrigger value="reviews" data-ocid="admin.tab">
             <MessageSquare size={14} className="mr-1" /> Reviews 💬
           </TabsTrigger>
@@ -971,9 +999,73 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
 
         {/* Orders Tab */}
         <TabsContent value="orders">
-          <h2 className="font-display font-semibold text-lg mb-4">
-            All Orders 📦
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="font-display font-semibold text-lg">
+              All Orders 📦
+            </h2>
+            {orders && orders.length > 0 && (
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-2 cursor-pointer text-sm"
+                  data-ocid="orders.checkbox"
+                >
+                  <Checkbox
+                    id="select-all-orders"
+                    checked={selectedOrderIds.size === orders.length}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedOrderIds(
+                          new Set(orders.map(([id]) => id.toString())),
+                        );
+                      } else {
+                        setSelectedOrderIds(new Set());
+                      }
+                    }}
+                    className="border-primary data-[state=checked]:bg-primary"
+                  />
+                  <Label
+                    htmlFor="select-all-orders"
+                    className="cursor-pointer text-sm"
+                  >
+                    Select All
+                  </Label>
+                </div>
+                {selectedOrderIds.size > 0 && (
+                  <Button
+                    size="sm"
+                    data-ocid="orders.delete_button"
+                    disabled={deletingOrders}
+                    onClick={async () => {
+                      if (!actor) return;
+                      setDeletingOrders(true);
+                      try {
+                        await (actor as any).softDeleteOrders(
+                          Array.from(selectedOrderIds).map(BigInt),
+                        );
+                        setSelectedOrderIds(new Set());
+                        queryClient.invalidateQueries({
+                          queryKey: ["allOrders"],
+                        });
+                        toast.success("Orders moved to deleted");
+                      } catch {
+                        toast.error("Failed to delete orders");
+                      } finally {
+                        setDeletingOrders(false);
+                      }
+                    }}
+                    className="bg-red-500 hover:bg-red-600 text-white rounded-full text-xs h-8"
+                  >
+                    {deletingOrders ? (
+                      <Loader2 size={12} className="mr-1 animate-spin" />
+                    ) : (
+                      <Trash2 size={12} className="mr-1" />
+                    )}
+                    Delete Selected ({selectedOrderIds.size})
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
           {ordersLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 size={32} className="animate-spin text-primary" />
@@ -997,15 +1089,30 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                   data-ocid={`orders.item.${i + 1}`}
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
-                    <div>
-                      <h3 className="font-display font-semibold text-sm">
-                        Order #{id.toString()}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(
-                          Number(order.createdAt) / 1_000_000,
-                        ).toLocaleDateString("en-IN")}
-                      </p>
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedOrderIds.has(id.toString())}
+                        onCheckedChange={(checked) => {
+                          setSelectedOrderIds((prev) => {
+                            const next = new Set(prev);
+                            if (checked) next.add(id.toString());
+                            else next.delete(id.toString());
+                            return next;
+                          });
+                        }}
+                        className="mt-1 border-primary data-[state=checked]:bg-primary"
+                        data-ocid={`orders.checkbox.${i + 1}`}
+                      />
+                      <div>
+                        <h3 className="font-display font-semibold text-sm">
+                          Order #{id.toString()}
+                        </h3>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(
+                            Number(order.createdAt) / 1_000_000,
+                          ).toLocaleDateString("en-IN")}
+                        </p>
+                      </div>
                     </div>
                     <Select
                       value={order.status}
@@ -1031,6 +1138,94 @@ export function AdminDashboard({ onNavigate }: AdminDashboardProps) {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {order.customerName}
+                      </p>
+                      <p>📞 {order.phone}</p>
+                    </div>
+                    <div>
+                      <p>📍 {order.address}</p>
+                      <p>
+                        {order.city} - {order.pincode}
+                      </p>
+                      {order.landmark && <p>🏠 {order.landmark}</p>}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {order.items.map((item) => (
+                      <Badge
+                        key={item.productId.toString()}
+                        variant="secondary"
+                        className="text-xs"
+                      >
+                        {productMap.get(item.productId.toString()) ??
+                          `#${item.productId.toString()}`}{" "}
+                        × {Number(item.quantity)} @ ₹{Number(item.price)}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center border-t border-border pt-3">
+                    <span className="text-xs text-muted-foreground">
+                      {order.items.length} items
+                    </span>
+                    <span className="font-bold text-primary">
+                      ₹{Number(order.totalINR)}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Deleted Orders Tab */}
+        <TabsContent value="deleted-orders">
+          <h2 className="font-display font-semibold text-lg mb-4">
+            Deleted Orders 🗑️
+          </h2>
+          {deletedOrdersLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 size={32} className="animate-spin text-primary" />
+            </div>
+          ) : deletedOrders.length === 0 ? (
+            <div
+              className="text-center py-20 text-muted-foreground card-pink"
+              data-ocid="deleted-orders.empty_state"
+            >
+              <div className="text-4xl mb-2">🗑️</div>
+              <p>No deleted orders</p>
+            </div>
+          ) : (
+            <div className="space-y-4" data-ocid="deleted-orders.list">
+              {deletedOrders.map(([id, order], i) => (
+                <motion.div
+                  key={id.toString()}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="card-pink p-5 opacity-70"
+                  data-ocid={`deleted-orders.item.${i + 1}`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
+                    <div>
+                      <h3 className="font-display font-semibold text-sm line-through text-muted-foreground">
+                        Order #{id.toString()}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(
+                          Number(order.createdAt) / 1_000_000,
+                        ).toLocaleDateString("en-IN")}
+                      </p>
+                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs bg-red-100 text-red-600 border-0"
+                    >
+                      Deleted
+                    </Badge>
                   </div>
                   <div className="grid md:grid-cols-2 gap-2 text-xs text-muted-foreground mb-3">
                     <div>

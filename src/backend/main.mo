@@ -139,6 +139,7 @@ actor {
 
   // V2 maps: new types with landmark field
   let ordersV2 = Map.empty<Nat, Order>();
+  let deletedOrders = Map.empty<Nat, Order>();
   let customerProfilesV2 = Map.empty<Principal, CustomerProfile>();
 
   // Migration flag
@@ -368,6 +369,27 @@ actor {
       if (order.status == "Completed") {
         results.add((id, order));
       };
+    };
+    results.values().toArray();
+  };
+
+  public func softDeleteOrders(orderIds : [Nat]) : async Bool {
+    for (orderId in orderIds.vals()) {
+      switch (ordersV2.get(orderId)) {
+        case (?order) {
+          deletedOrders.add(orderId, order);
+          ignore ordersV2.remove(orderId);
+        };
+        case (null) {};
+      };
+    };
+    true;
+  };
+
+  public query func getDeletedOrders() : async [(Nat, Order)] {
+    let results = List.empty<(Nat, Order)>();
+    for ((id, order) in deletedOrders.entries()) {
+      results.add((id, order));
     };
     results.values().toArray();
   };

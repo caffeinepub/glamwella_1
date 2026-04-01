@@ -123,6 +123,8 @@ export interface backendInterface {
     }>;
     filterProductsByCategory(category: string): Promise<Array<[bigint, Product]>>;
     getAllOrders(): Promise<Array<[bigint, Order]>>;
+    getDeletedOrders(): Promise<Array<[bigint, Order]>>;
+    softDeleteOrders(orderIds: Array<bigint>): Promise<boolean>;
     getApprovedReviewsForProduct(productId: bigint): Promise<Array<Review>>;
     getCallerUserProfile(): Promise<CustomerProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
