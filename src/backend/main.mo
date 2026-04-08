@@ -9,9 +9,9 @@ import Time "mo:core/Time";
 import Iter "mo:core/Iter";
 import Order "mo:core/Order";
 
-import OutCall "http-outcalls/outcall";
-import MixinAuthorization "authorization/MixinAuthorization";
-import AccessControl "authorization/access-control";
+import OutCall "mo:caffeineai-http-outcalls/outcall";
+import MixinAuthorization "mo:caffeineai-authorization/MixinAuthorization";
+import AccessControl "mo:caffeineai-authorization/access-control";
 
 
 
@@ -143,7 +143,7 @@ actor {
   let customerProfilesV2 = Map.empty<Principal, CustomerProfile>();
 
   // Migration flag
-  stable var _profilesMigrated = false;
+  var _profilesMigrated = false;
 
   system func postupgrade() {
     if (not _profilesMigrated) {
@@ -279,8 +279,8 @@ actor {
       switch (products.get(item.productId)) {
         case (null) {};
         case (?product) {
-          let newStock = if (product.stockQuantity >= item.quantity) {
-            product.stockQuantity - item.quantity;
+          let newStock : Nat = if (product.stockQuantity >= item.quantity) {
+            product.stockQuantity - item.quantity : Nat;
           } else { 0 };
           let updatedProduct : Product = {
             product with stockQuantity = newStock;
@@ -378,7 +378,7 @@ actor {
       switch (ordersV2.get(orderId)) {
         case (?order) {
           deletedOrders.add(orderId, order);
-          ignore ordersV2.remove(orderId);
+          ordersV2.remove(orderId);
         };
         case (null) {};
       };

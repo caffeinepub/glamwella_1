@@ -98,6 +98,11 @@ export interface http_request_result {
     body: Uint8Array;
     headers: Array<http_header>;
 }
+export interface DeliveryRule {
+    zoneOrPincode: string;
+    isDefault: boolean;
+    chargeINR: bigint;
+}
 export interface TransformationOutput {
     status: bigint;
     body: Uint8Array;
@@ -117,10 +122,16 @@ export interface CustomerProfile {
     name: string;
     gmail: string;
     address: string;
+    landmark: string;
     phone: string;
     pincode: string;
-    landmark: string;
     profileComplete: boolean;
+}
+export interface Coupon {
+    discountAmountINR: bigint;
+    code: string;
+    isActive: boolean;
+    maxUsesPerUser: bigint;
 }
 export interface Order {
     customerName: string;
@@ -131,10 +142,10 @@ export interface Order {
     razorpayOrderId: string;
     address: string;
     customerId: Principal;
+    landmark: string;
     phone: string;
     items: Array<OrderItem>;
     pincode: string;
-    landmark: string;
 }
 export interface Review {
     status: string;
@@ -158,19 +169,10 @@ export enum UserRole {
     user = "user",
     guest = "guest"
 }
-export interface DeliveryRule {
-    zoneOrPincode: string;
-    chargeINR: bigint;
-    isDefault: boolean;
-}
-export interface Coupon {
-    code: string;
-    discountAmountINR: bigint;
-    maxUsesPerUser: bigint;
-    isActive: boolean;
-}
 export interface backendInterface {
-    _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
+    _initializeAccessControl(): Promise<void>;
+    addCoupon(coupon: Coupon): Promise<bigint>;
+    addDeliveryRule(rule: DeliveryRule): Promise<bigint>;
     addProduct(product: Product): Promise<bigint>;
     adminLogin(username: string, password: string): Promise<{
         __kind__: "ok";
@@ -196,6 +198,8 @@ export interface backendInterface {
         __kind__: "err";
         err: string;
     }>;
+    deleteCoupon(id: bigint): Promise<void>;
+    deleteDeliveryRule(id: bigint): Promise<void>;
     deleteProduct(id: bigint): Promise<void>;
     deleteReview(reviewId: bigint): Promise<{
         __kind__: "ok";
@@ -210,7 +214,11 @@ export interface backendInterface {
     getCallerUserProfile(): Promise<CustomerProfile | null>;
     getCallerUserRole(): Promise<UserRole>;
     getCompletedOrders(): Promise<Array<[bigint, Order]>>;
+    getCoupons(): Promise<Array<[bigint, Coupon]>>;
     getCustomerReviews(): Promise<Array<Review>>;
+    getDeletedOrders(): Promise<Array<[bigint, Order]>>;
+    getDeliveryChargeForPincode(pincode: string): Promise<bigint>;
+    getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>>;
     getMyOrders(): Promise<Array<[bigint, Order]>>;
     getMyProfile(): Promise<CustomerProfile | null>;
     getOrderById(orderId: bigint): Promise<Order | null>;
@@ -225,10 +233,19 @@ export interface backendInterface {
     getProfile(user: Principal): Promise<CustomerProfile | null>;
     getRazorpayKeys(): Promise<[string, string]>;
     getUserProfile(user: Principal): Promise<CustomerProfile | null>;
+    hasCouponBeenUsed(code: string): Promise<boolean>;
     isCallerAdmin(): Promise<boolean>;
+    redeemCoupon(code: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
     saveCallerUserProfile(profile: CustomerProfile): Promise<void>;
     searchProducts(searchText: string): Promise<Array<[bigint, Product]>>;
     setRazorpayKeys(keyId: string, keySecret: string): Promise<void>;
+    softDeleteOrders(orderIds: Array<bigint>): Promise<boolean>;
     submitReview(productId: bigint, rating: bigint, comment: string): Promise<{
         __kind__: "ok";
         ok: bigint;
@@ -237,38 +254,61 @@ export interface backendInterface {
         err: string;
     }>;
     transform(input: TransformationInput): Promise<TransformationOutput>;
+    updateCoupon(id: bigint, coupon: Coupon): Promise<void>;
+    updateDeliveryRule(id: bigint, rule: DeliveryRule): Promise<void>;
     updateOrderStatus(orderId: bigint, status: string): Promise<boolean>;
     updateProduct(id: bigint, product: Product): Promise<void>;
     validateAdminToken(token: string): Promise<boolean>;
-    addDeliveryRule(rule: DeliveryRule): Promise<bigint>;
-    updateDeliveryRule(id: bigint, rule: DeliveryRule): Promise<void>;
-    deleteDeliveryRule(id: bigint): Promise<void>;
-    getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>>;
-    getDeliveryChargeForPincode(pincode: string): Promise<bigint>;
-    addCoupon(coupon: Coupon): Promise<bigint>;
-    getCoupons(): Promise<Array<[bigint, Coupon]>>;
-    updateCoupon(id: bigint, coupon: Coupon): Promise<void>;
-    deleteCoupon(id: bigint): Promise<void>;
-    validateCoupon(code: string): Promise<{ __kind__: "ok"; ok: bigint } | { __kind__: "err"; err: string }>;
-    redeemCoupon(code: string): Promise<{ __kind__: "ok"; ok: null } | { __kind__: "err"; err: string }>;
-    hasCouponBeenUsed(code: string): Promise<boolean>;
-    softDeleteOrders(orderIds: Array<bigint>): Promise<boolean>;
-    getDeletedOrders(): Promise<Array<[bigint, Order]>>;
+    validateCoupon(code: string): Promise<{
+        __kind__: "ok";
+        ok: bigint;
+    } | {
+        __kind__: "err";
+        err: string;
+    }>;
 }
 import type { CustomerProfile as _CustomerProfile, Order as _Order, Product as _Product, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
-    async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
+    async _initializeAccessControl(): Promise<void> {
         if (this.processError) {
             try {
-                const result = await this.actor._initializeAccessControlWithSecret(arg0);
+                const result = await this.actor._initializeAccessControl();
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor._initializeAccessControlWithSecret(arg0);
+            const result = await this.actor._initializeAccessControl();
+            return result;
+        }
+    }
+    async addCoupon(arg0: Coupon): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addCoupon(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addCoupon(arg0);
+            return result;
+        }
+    }
+    async addDeliveryRule(arg0: DeliveryRule): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addDeliveryRule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addDeliveryRule(arg0);
             return result;
         }
     }
@@ -386,6 +426,34 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.createRazorpayOrder(arg0, arg1);
             return from_candid_variant_n1(this._uploadFile, this._downloadFile, result);
+        }
+    }
+    async deleteCoupon(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteCoupon(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteCoupon(arg0);
+            return result;
+        }
+    }
+    async deleteDeliveryRule(arg0: bigint): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteDeliveryRule(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteDeliveryRule(arg0);
+            return result;
         }
     }
     async deleteProduct(arg0: bigint): Promise<void> {
@@ -506,6 +574,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getCoupons(): Promise<Array<[bigint, Coupon]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCoupons();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCoupons();
+            return result;
+        }
+    }
     async getCustomerReviews(): Promise<Array<Review>> {
         if (this.processError) {
             try {
@@ -517,6 +599,48 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getCustomerReviews();
+            return result;
+        }
+    }
+    async getDeletedOrders(): Promise<Array<[bigint, Order]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeletedOrders();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeletedOrders();
+            return result;
+        }
+    }
+    async getDeliveryChargeForPincode(arg0: string): Promise<bigint> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeliveryChargeForPincode(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeliveryChargeForPincode(arg0);
+            return result;
+        }
+    }
+    async getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getDeliveryRules();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getDeliveryRules();
             return result;
         }
     }
@@ -722,6 +846,20 @@ export class Backend implements backendInterface {
             return from_candid_opt_n6(this._uploadFile, this._downloadFile, result);
         }
     }
+    async hasCouponBeenUsed(arg0: string): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.hasCouponBeenUsed(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.hasCouponBeenUsed(arg0);
+            return result;
+        }
+    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -734,6 +872,26 @@ export class Backend implements backendInterface {
         } else {
             const result = await this.actor.isCallerAdmin();
             return result;
+        }
+    }
+    async redeemCoupon(arg0: string): Promise<{
+        __kind__: "ok";
+        ok: null;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.redeemCoupon(arg0);
+                return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.redeemCoupon(arg0);
+            return from_candid_variant_n2(this._uploadFile, this._downloadFile, result);
         }
     }
     async saveCallerUserProfile(arg0: CustomerProfile): Promise<void> {
@@ -778,6 +936,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async softDeleteOrders(arg0: Array<bigint>): Promise<boolean> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.softDeleteOrders(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.softDeleteOrders(arg0);
+            return result;
+        }
+    }
     async submitReview(arg0: bigint, arg1: bigint, arg2: string): Promise<{
         __kind__: "ok";
         ok: bigint;
@@ -809,6 +981,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.transform(arg0);
+            return result;
+        }
+    }
+    async updateCoupon(arg0: bigint, arg1: Coupon): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateCoupon(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateCoupon(arg0, arg1);
+            return result;
+        }
+    }
+    async updateDeliveryRule(arg0: bigint, arg1: DeliveryRule): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.updateDeliveryRule(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.updateDeliveryRule(arg0, arg1);
             return result;
         }
     }
@@ -854,196 +1054,24 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async addDeliveryRule(arg0: DeliveryRule): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.addDeliveryRule(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.addDeliveryRule(arg0);
-            return result;
-        }
-    }
-    async updateDeliveryRule(arg0: bigint, arg1: DeliveryRule): Promise<void> {
-        if (this.processError) {
-            try {
-                await this.actor.updateDeliveryRule(arg0, arg1);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            await this.actor.updateDeliveryRule(arg0, arg1);
-        }
-    }
-    async deleteDeliveryRule(arg0: bigint): Promise<void> {
-        if (this.processError) {
-            try {
-                await this.actor.deleteDeliveryRule(arg0);
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            await this.actor.deleteDeliveryRule(arg0);
-        }
-    }
-    async getDeliveryRules(): Promise<Array<[bigint, DeliveryRule]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getDeliveryRules();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getDeliveryRules();
-            return result;
-        }
-    }
-    async getDeliveryChargeForPincode(arg0: string): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getDeliveryChargeForPincode(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getDeliveryChargeForPincode(arg0);
-            return result;
-        }
-    }
-    async addCoupon(arg0: Coupon): Promise<bigint> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.addCoupon(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.addCoupon(arg0);
-            return result;
-        }
-    }
-    async getCoupons(): Promise<Array<[bigint, Coupon]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getCoupons();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getCoupons();
-            return result;
-        }
-    }
-    async updateCoupon(arg0: bigint, arg1: Coupon): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.updateCoupon(arg0, arg1);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.updateCoupon(arg0, arg1);
-            return result;
-        }
-    }
-    async deleteCoupon(arg0: bigint): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.deleteCoupon(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.deleteCoupon(arg0);
-            return result;
-        }
-    }
-    async validateCoupon(arg0: string): Promise<{ __kind__: "ok"; ok: bigint } | { __kind__: "err"; err: string }> {
+    async validateCoupon(arg0: string): Promise<{
+        __kind__: "ok";
+        ok: bigint;
+    } | {
+        __kind__: "err";
+        err: string;
+    }> {
         if (this.processError) {
             try {
                 const result = await this.actor.validateCoupon(arg0);
-                return "ok" in result ? { __kind__: "ok", ok: result.ok } : { __kind__: "err", err: result.err };
+                return from_candid_variant_n11(this._uploadFile, this._downloadFile, result);
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
             const result = await this.actor.validateCoupon(arg0);
-            return "ok" in result ? { __kind__: "ok", ok: result.ok } : { __kind__: "err", err: result.err };
-        }
-    }
-    async redeemCoupon(arg0: string): Promise<{ __kind__: "ok"; ok: null } | { __kind__: "err"; err: string }> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.redeemCoupon(arg0);
-                return "ok" in result ? { __kind__: "ok", ok: result.ok } : { __kind__: "err", err: result.err };
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.redeemCoupon(arg0);
-            return "ok" in result ? { __kind__: "ok", ok: result.ok } : { __kind__: "err", err: result.err };
-        }
-    }
-    async hasCouponBeenUsed(arg0: string): Promise<boolean> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.hasCouponBeenUsed(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.hasCouponBeenUsed(arg0);
-            return result;
-        }
-    }
-    async softDeleteOrders(orderIds: Array<bigint>): Promise<boolean> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.softDeleteOrders(orderIds);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.softDeleteOrders(orderIds);
-            return result;
-        }
-    }
-    async getDeletedOrders(): Promise<Array<[bigint, Order]>> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.getDeletedOrders();
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.getDeletedOrders();
-            return result;
+            return from_candid_variant_n11(this._uploadFile, this._downloadFile, result);
         }
     }
 }

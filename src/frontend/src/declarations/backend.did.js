@@ -9,15 +9,15 @@
 import { IDL } from '@icp-sdk/core/candid';
 
 export const Coupon = IDL.Record({
-  'code' : IDL.Text,
   'discountAmountINR' : IDL.Nat,
-  'maxUsesPerUser' : IDL.Nat,
+  'code' : IDL.Text,
   'isActive' : IDL.Bool,
+  'maxUsesPerUser' : IDL.Nat,
 });
 export const DeliveryRule = IDL.Record({
   'zoneOrPincode' : IDL.Text,
-  'chargeINR' : IDL.Nat,
   'isDefault' : IDL.Bool,
+  'chargeINR' : IDL.Nat,
 });
 export const Product = IDL.Record({
   'stockQuantity' : IDL.Nat,
@@ -38,9 +38,9 @@ export const CustomerProfile = IDL.Record({
   'name' : IDL.Text,
   'gmail' : IDL.Text,
   'address' : IDL.Text,
+  'landmark' : IDL.Text,
   'phone' : IDL.Text,
   'pincode' : IDL.Text,
-  'landmark' : IDL.Text,
   'profileComplete' : IDL.Bool,
 });
 export const OrderItem = IDL.Record({
@@ -57,10 +57,10 @@ export const Order = IDL.Record({
   'razorpayOrderId' : IDL.Text,
   'address' : IDL.Text,
   'customerId' : IDL.Principal,
+  'landmark' : IDL.Text,
   'phone' : IDL.Text,
   'items' : IDL.Vec(OrderItem),
   'pincode' : IDL.Text,
-  'landmark' : IDL.Text,
 });
 export const Review = IDL.Record({
   'status' : IDL.Text,
@@ -90,13 +90,9 @@ export const TransformationOutput = IDL.Record({
 });
 
 export const idlService = IDL.Service({
-  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-  'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
-  'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
-  'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
-  'getDeliveryRules' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))], ['query']),
-  'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+  '_initializeAccessControl' : IDL.Func([], [], []),
   'addCoupon' : IDL.Func([Coupon], [IDL.Nat], []),
+  'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
   'addProduct' : IDL.Func([Product], [IDL.Nat], []),
   'adminLogin' : IDL.Func(
       [IDL.Text, IDL.Text],
@@ -131,6 +127,7 @@ export const idlService = IDL.Service({
       [],
     ),
   'deleteCoupon' : IDL.Func([IDL.Nat], [], []),
+  'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
   'deleteProduct' : IDL.Func([IDL.Nat], [], []),
   'deleteReview' : IDL.Func(
       [IDL.Nat],
@@ -159,12 +156,19 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
       ['query'],
     ),
-  'getCoupons' : IDL.Func(
+  'getCoupons' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Coupon))], ['query']),
+  'getCustomerReviews' : IDL.Func([], [IDL.Vec(Review)], ['query']),
+  'getDeletedOrders' : IDL.Func(
       [],
-      [IDL.Vec(IDL.Tuple(IDL.Nat, Coupon))],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
       ['query'],
     ),
-  'getCustomerReviews' : IDL.Func([], [IDL.Vec(Review)], ['query']),
+  'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+  'getDeliveryRules' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))],
+      ['query'],
+    ),
   'getMyOrders' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Order))], ['query']),
   'getMyProfile' : IDL.Func([], [IDL.Opt(CustomerProfile)], ['query']),
   'getOrderById' : IDL.Func([IDL.Nat], [IDL.Opt(Order)], ['query']),
@@ -183,7 +187,11 @@ export const idlService = IDL.Service({
       [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
       ['query'],
     ),
-  'getPendingReviews' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Review))], ['query']),
+  'getPendingReviews' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Tuple(IDL.Nat, Review))],
+      ['query'],
+    ),
   'getProductById' : IDL.Func([IDL.Nat], [IDL.Opt(Product)], ['query']),
   'getProducts' : IDL.Func(
       [],
@@ -225,6 +233,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'setRazorpayKeys' : IDL.Func([IDL.Text, IDL.Text], [], []),
+  'softDeleteOrders' : IDL.Func([IDL.Vec(IDL.Nat)], [IDL.Bool], []),
   'submitReview' : IDL.Func(
       [IDL.Nat, IDL.Nat, IDL.Text],
       [IDL.Variant({ 'ok' : IDL.Nat, 'err' : IDL.Text })],
@@ -236,8 +245,7 @@ export const idlService = IDL.Service({
       ['query'],
     ),
   'updateCoupon' : IDL.Func([IDL.Nat, Coupon], [], []),
-  'softDeleteOrders' : IDL.Func([IDL.Vec(IDL.Nat)], [IDL.Bool], []),
-  'getDeletedOrders' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Order))], ['query']),
+  'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
   'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [IDL.Bool], []),
   'updateProduct' : IDL.Func([IDL.Nat, Product], [], []),
   'validateAdminToken' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
@@ -252,15 +260,15 @@ export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
   const Coupon = IDL.Record({
-    'code' : IDL.Text,
     'discountAmountINR' : IDL.Nat,
-    'maxUsesPerUser' : IDL.Nat,
+    'code' : IDL.Text,
     'isActive' : IDL.Bool,
+    'maxUsesPerUser' : IDL.Nat,
   });
   const DeliveryRule = IDL.Record({
     'zoneOrPincode' : IDL.Text,
-    'chargeINR' : IDL.Nat,
     'isDefault' : IDL.Bool,
+    'chargeINR' : IDL.Nat,
   });
   const Product = IDL.Record({
     'stockQuantity' : IDL.Nat,
@@ -281,9 +289,9 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'gmail' : IDL.Text,
     'address' : IDL.Text,
+    'landmark' : IDL.Text,
     'phone' : IDL.Text,
     'pincode' : IDL.Text,
-    'landmark' : IDL.Text,
     'profileComplete' : IDL.Bool,
   });
   const OrderItem = IDL.Record({
@@ -300,10 +308,10 @@ export const idlFactory = ({ IDL }) => {
     'razorpayOrderId' : IDL.Text,
     'address' : IDL.Text,
     'customerId' : IDL.Principal,
+    'landmark' : IDL.Text,
     'phone' : IDL.Text,
     'items' : IDL.Vec(OrderItem),
     'pincode' : IDL.Text,
-    'landmark' : IDL.Text,
   });
   const Review = IDL.Record({
     'status' : IDL.Text,
@@ -330,13 +338,9 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
-    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
-    'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
-    'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
-    'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
-    'getDeliveryRules' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))], ['query']),
-    'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    '_initializeAccessControl' : IDL.Func([], [], []),
     'addCoupon' : IDL.Func([Coupon], [IDL.Nat], []),
+    'addDeliveryRule' : IDL.Func([DeliveryRule], [IDL.Nat], []),
     'addProduct' : IDL.Func([Product], [IDL.Nat], []),
     'adminLogin' : IDL.Func(
         [IDL.Text, IDL.Text],
@@ -371,6 +375,7 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'deleteCoupon' : IDL.Func([IDL.Nat], [], []),
+    'deleteDeliveryRule' : IDL.Func([IDL.Nat], [], []),
     'deleteProduct' : IDL.Func([IDL.Nat], [], []),
     'deleteReview' : IDL.Func(
         [IDL.Nat],
@@ -409,6 +414,17 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'getCustomerReviews' : IDL.Func([], [IDL.Vec(Review)], ['query']),
+    'getDeletedOrders' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
+        ['query'],
+      ),
+    'getDeliveryChargeForPincode' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    'getDeliveryRules' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, DeliveryRule))],
+        ['query'],
+      ),
     'getMyOrders' : IDL.Func(
         [],
         [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
@@ -431,7 +447,11 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Nat, Order))],
         ['query'],
       ),
-    'getPendingReviews' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Review))], ['query']),
+    'getPendingReviews' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Tuple(IDL.Nat, Review))],
+        ['query'],
+      ),
     'getProductById' : IDL.Func([IDL.Nat], [IDL.Opt(Product)], ['query']),
     'getProducts' : IDL.Func(
         [],
@@ -473,6 +493,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'setRazorpayKeys' : IDL.Func([IDL.Text, IDL.Text], [], []),
+    'softDeleteOrders' : IDL.Func([IDL.Vec(IDL.Nat)], [IDL.Bool], []),
     'submitReview' : IDL.Func(
         [IDL.Nat, IDL.Nat, IDL.Text],
         [IDL.Variant({ 'ok' : IDL.Nat, 'err' : IDL.Text })],
@@ -484,8 +505,7 @@ export const idlFactory = ({ IDL }) => {
         ['query'],
       ),
     'updateCoupon' : IDL.Func([IDL.Nat, Coupon], [], []),
-    'softDeleteOrders' : IDL.Func([IDL.Vec(IDL.Nat)], [IDL.Bool], []),
-    'getDeletedOrders' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Nat, Order))], ['query']),
+    'updateDeliveryRule' : IDL.Func([IDL.Nat, DeliveryRule], [], []),
     'updateOrderStatus' : IDL.Func([IDL.Nat, IDL.Text], [IDL.Bool], []),
     'updateProduct' : IDL.Func([IDL.Nat, Product], [], []),
     'validateAdminToken' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),

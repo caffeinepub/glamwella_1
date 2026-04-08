@@ -2,7 +2,7 @@ import glamwellaLogo from "@/assets/glamwella-logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Loader2, Lock, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -13,7 +13,7 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onNavigate }: AdminLoginProps) {
-  const { actor, isFetching, isError, refetch } = useActor();
+  const { actor, isFetching } = useActor();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,18 +40,12 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
         toast.error(result.err);
       }
     } catch (err) {
-      setError("Connection failed. Click Retry to reconnect.");
+      setError("Connection failed. Please try again.");
       toast.error("Connection failed. Please retry.");
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleRetry = () => {
-    setError("");
-    refetch();
-    toast.info("Reconnecting to server...");
   };
 
   return (
@@ -122,34 +116,22 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               {error}
             </p>
           )}
-          {isError ? (
-            <Button
-              type="button"
-              data-ocid="admin.retry_button"
-              onClick={handleRetry}
-              className="btn-primary w-full py-3"
-            >
-              <RefreshCw size={16} className="mr-2" />
-              Retry Connection
-            </Button>
-          ) : (
-            <Button
-              type="submit"
-              data-ocid="admin.submit_button"
-              disabled={loading}
-              className="btn-primary w-full py-3"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" /> Logging
-                  in...
-                </>
-              ) : (
-                "Login to Admin 🔐"
-              )}
-            </Button>
-          )}
-          {isFetching && !isError && (
+          <Button
+            type="submit"
+            data-ocid="admin.submit_button"
+            disabled={loading}
+            className="btn-primary w-full py-3"
+          >
+            {loading ? (
+              <>
+                <Loader2 size={16} className="mr-2 animate-spin" /> Logging
+                in...
+              </>
+            ) : (
+              "Login to Admin 🔐"
+            )}
+          </Button>
+          {isFetching && (
             <p className="text-xs text-muted-foreground text-center">
               Connecting to server...
             </p>

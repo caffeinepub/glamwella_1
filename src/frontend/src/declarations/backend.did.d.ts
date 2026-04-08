@@ -11,25 +11,25 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Coupon {
-  'code' : string,
   'discountAmountINR' : bigint,
-  'maxUsesPerUser' : bigint,
+  'code' : string,
   'isActive' : boolean,
-}
-export interface DeliveryRule {
-  'zoneOrPincode' : string,
-  'chargeINR' : bigint,
-  'isDefault' : boolean,
+  'maxUsesPerUser' : bigint,
 }
 export interface CustomerProfile {
   'city' : string,
   'name' : string,
   'gmail' : string,
   'address' : string,
+  'landmark' : string,
   'phone' : string,
   'pincode' : string,
-  'landmark' : string,
   'profileComplete' : boolean,
+}
+export interface DeliveryRule {
+  'zoneOrPincode' : string,
+  'isDefault' : boolean,
+  'chargeINR' : bigint,
 }
 export interface Order {
   'customerName' : string,
@@ -40,10 +40,10 @@ export interface Order {
   'razorpayOrderId' : string,
   'address' : string,
   'customerId' : Principal,
+  'landmark' : string,
   'phone' : string,
   'items' : Array<OrderItem>,
   'pincode' : string,
-  'landmark' : string,
 }
 export interface OrderItem {
   'productId' : bigint,
@@ -86,13 +86,9 @@ export interface http_request_result {
   'headers' : Array<http_header>,
 }
 export interface _SERVICE {
-  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
-  'addDeliveryRule' : ActorMethod<[DeliveryRule], bigint>,
-  'updateDeliveryRule' : ActorMethod<[bigint, DeliveryRule], undefined>,
-  'deleteDeliveryRule' : ActorMethod<[bigint], undefined>,
-  'getDeliveryRules' : ActorMethod<[], Array<[bigint, DeliveryRule]>>,
-  'getDeliveryChargeForPincode' : ActorMethod<[string], bigint>,
+  '_initializeAccessControl' : ActorMethod<[], undefined>,
   'addCoupon' : ActorMethod<[Coupon], bigint>,
+  'addDeliveryRule' : ActorMethod<[DeliveryRule], bigint>,
   'addProduct' : ActorMethod<[Product], bigint>,
   'adminLogin' : ActorMethod<
     [string, string],
@@ -103,7 +99,17 @@ export interface _SERVICE {
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'createOrUpdateProfile' : ActorMethod<[CustomerProfile], undefined>,
   'createOrder' : ActorMethod<
-    [Array<OrderItem>, bigint, string, string, string, string, string, string, string],
+    [
+      Array<OrderItem>,
+      bigint,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+      string,
+    ],
     [] | [bigint]
   >,
   'createRazorpayOrder' : ActorMethod<
@@ -112,6 +118,7 @@ export interface _SERVICE {
       { 'err' : string }
   >,
   'deleteCoupon' : ActorMethod<[bigint], undefined>,
+  'deleteDeliveryRule' : ActorMethod<[bigint], undefined>,
   'deleteProduct' : ActorMethod<[bigint], undefined>,
   'deleteReview' : ActorMethod<[bigint], { 'ok' : null } | { 'err' : string }>,
   'filterProductsByCategory' : ActorMethod<[string], Array<[bigint, Product]>>,
@@ -122,6 +129,9 @@ export interface _SERVICE {
   'getCompletedOrders' : ActorMethod<[], Array<[bigint, Order]>>,
   'getCoupons' : ActorMethod<[], Array<[bigint, Coupon]>>,
   'getCustomerReviews' : ActorMethod<[], Array<Review>>,
+  'getDeletedOrders' : ActorMethod<[], Array<[bigint, Order]>>,
+  'getDeliveryChargeForPincode' : ActorMethod<[string], bigint>,
+  'getDeliveryRules' : ActorMethod<[], Array<[bigint, DeliveryRule]>>,
   'getMyOrders' : ActorMethod<[], Array<[bigint, Order]>>,
   'getMyProfile' : ActorMethod<[], [] | [CustomerProfile]>,
   'getOrderById' : ActorMethod<[bigint], [] | [Order]>,
@@ -142,6 +152,7 @@ export interface _SERVICE {
   'saveCallerUserProfile' : ActorMethod<[CustomerProfile], undefined>,
   'searchProducts' : ActorMethod<[string], Array<[bigint, Product]>>,
   'setRazorpayKeys' : ActorMethod<[string, string], undefined>,
+  'softDeleteOrders' : ActorMethod<[Array<bigint>], boolean>,
   'submitReview' : ActorMethod<
     [bigint, bigint, string],
     { 'ok' : bigint } |
@@ -149,12 +160,15 @@ export interface _SERVICE {
   >,
   'transform' : ActorMethod<[TransformationInput], TransformationOutput>,
   'updateCoupon' : ActorMethod<[bigint, Coupon], undefined>,
-  'softDeleteOrders' : ActorMethod<[bigint[]], boolean>,
-  'getDeletedOrders' : ActorMethod<[], Array<[bigint, Order]>>,
+  'updateDeliveryRule' : ActorMethod<[bigint, DeliveryRule], undefined>,
   'updateOrderStatus' : ActorMethod<[bigint, string], boolean>,
   'updateProduct' : ActorMethod<[bigint, Product], undefined>,
   'validateAdminToken' : ActorMethod<[string], boolean>,
-  'validateCoupon' : ActorMethod<[string], { 'ok' : bigint } | { 'err' : string }>,
+  'validateCoupon' : ActorMethod<
+    [string],
+    { 'ok' : bigint } |
+      { 'err' : string }
+  >,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
