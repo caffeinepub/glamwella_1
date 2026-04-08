@@ -5,7 +5,6 @@ import { Loader2, Save, User } from "lucide-react";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { useActor } from "../hooks/useActor";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useMyProfile, useSaveProfile } from "../hooks/useQueries";
 
@@ -16,7 +15,6 @@ interface ProfileProps {
 
 export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
   const { identity } = useInternetIdentity();
-  const { isFetching } = useActor();
   const { data: profile, isLoading } = useMyProfile();
   const saveProfile = useSaveProfile();
 
@@ -163,17 +161,12 @@ export function Profile({ onNavigate, isFirstLogin }: ProfileProps) {
             <Button
               type="submit"
               data-ocid="profile.submit_button"
-              disabled={saveProfile.isPending || isFetching}
+              disabled={saveProfile.isPending}
               className="btn-primary w-full py-3 mt-2"
             >
               {saveProfile.isPending ? (
                 <>
                   <Loader2 size={16} className="mr-2 animate-spin" /> Saving...
-                </>
-              ) : isFetching ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />{" "}
-                  Connecting...
                 </>
               ) : (
                 <>

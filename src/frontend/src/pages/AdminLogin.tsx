@@ -13,7 +13,7 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onNavigate }: AdminLoginProps) {
-  const { actor, isFetching } = useActor();
+  const { actor } = useActor();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -24,13 +24,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
     setLoading(true);
     setError("");
     try {
-      if (!actor) {
-        setError(
-          "Not connected to server yet. Please wait a moment and try again.",
-        );
-        return;
-      }
-      const result = await actor.adminLogin(username, password);
+      const result = await actor!.adminLogin(username, password);
       if (result.__kind__ === "ok") {
         localStorage.setItem("glamwella_admin_token", result.ok);
         toast.success("Welcome, Admin! 🎀");
@@ -40,8 +34,8 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
         toast.error(result.err);
       }
     } catch (err) {
-      setError("Connection failed. Please try again.");
-      toast.error("Connection failed. Please retry.");
+      setError("Login failed. Please try again.");
+      toast.error("Login failed. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -131,11 +125,6 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               "Login to Admin 🔐"
             )}
           </Button>
-          {isFetching && (
-            <p className="text-xs text-muted-foreground text-center">
-              Connecting to server...
-            </p>
-          )}
         </form>
       </motion.div>
     </main>
