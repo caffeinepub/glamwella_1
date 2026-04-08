@@ -13,23 +13,21 @@ interface AdminLoginProps {
 }
 
 export function AdminLogin({ onNavigate }: AdminLoginProps) {
-  const { actor, isFetching } = useActor();
+  const { actor, isFetching, isError, refetch } = useActor();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [connectionError, setConnectionError] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setConnectionError(false);
     try {
       if (!actor) {
-        const msg = "Not connected. Please wait and try again.";
-        setError(msg);
-        toast.error(msg);
+        setError(
+          "Not connected to server yet. Please wait a moment and try again.",
+        );
         return;
       }
       const result = await actor.adminLogin(username, password);
@@ -42,20 +40,17 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
         toast.error(result.err);
       }
     } catch (err) {
-      setConnectionError(true);
-      const msg =
-        "Connection failed. Refreshing connection — please try again in a moment.";
-      setError(msg);
-      toast.error(msg);
+      setError("Connection failed. Click Retry to reconnect.");
+      toast.error("Connection failed. Please retry.");
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRetryConnection = () => {
-    setConnectionError(false);
+  const handleRetry = () => {
     setError("");
+    refetch();
     toast.info("Reconnecting to server...");
   };
 
@@ -103,7 +98,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               onChange={(e) => setUsername(e.target.value)}
               className="rounded-xl"
               autoComplete="username"
-              disabled={loading || isFetching}
+              disabled={loading}
             />
           </div>
           <div className="space-y-1">
@@ -116,7 +111,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               onChange={(e) => setPassword(e.target.value)}
               className="rounded-xl"
               autoComplete="current-password"
-              disabled={loading || isFetching}
+              disabled={loading}
             />
           </div>
           {error && (
@@ -127,11 +122,11 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
               {error}
             </p>
           )}
-          {connectionError ? (
+          {isError ? (
             <Button
               type="button"
               data-ocid="admin.retry_button"
-              onClick={handleRetryConnection}
+              onClick={handleRetry}
               className="btn-primary w-full py-3"
             >
               <RefreshCw size={16} className="mr-2" />
@@ -141,7 +136,7 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
             <Button
               type="submit"
               data-ocid="admin.submit_button"
-              disabled={loading || isFetching}
+              disabled={loading}
               className="btn-primary w-full py-3"
             >
               {loading ? (
@@ -149,17 +144,12 @@ export function AdminLogin({ onNavigate }: AdminLoginProps) {
                   <Loader2 size={16} className="mr-2 animate-spin" /> Logging
                   in...
                 </>
-              ) : isFetching ? (
-                <>
-                  <Loader2 size={16} className="mr-2 animate-spin" />{" "}
-                  Connecting...
-                </>
               ) : (
                 "Login to Admin 🔐"
               )}
             </Button>
           )}
-          {isFetching && !connectionError && (
+          {isFetching && !isError && (
             <p className="text-xs text-muted-foreground text-center">
               Connecting to server...
             </p>
